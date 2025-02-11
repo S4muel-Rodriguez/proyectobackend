@@ -1,0 +1,7 @@
+{
+  "watch": ["app.js", "routes/"],          
+  "ext": "js,json",                          
+  "ignore": ["node_modules/**"],             
+  "exec": "node app.js",                     
+  "delay": "1000"                             
+}

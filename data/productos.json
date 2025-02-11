@@ -1,0 +1,25 @@
+[
+    {
+      "id": 101,
+      "title": "Laptop",
+      "description": "Laptop potente para desarrolladores",
+      "code": "LP123",
+      "price": 1200,
+      "status": true,
+      "stock": 10,
+      "category": "Electronics",
+      "thumbnails": ["img/laptop1.jpg", "img/laptop2.jpg"]
+    },
+    {
+      "id": 102,
+      "title": "Smartphone",
+      "description": "Smartphone con excelente cámara",
+      "code": "SP456",
+      "price": 800,
+      "status": true,
+      "stock": 15,
+      "category": "Electronics",
+      "thumbnails": ["img/smartphone1.jpg"]
+    }
+  ]
+  
