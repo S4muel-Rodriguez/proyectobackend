@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos en Tiempo Real</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h1>Productos en Tiempo Real</h1>
+  <form id="add-product-form">
+    <input type="text" id="name" placeholder="Nombre del producto" required />
+    <input type="number" id="price" placeholder="Precio" required />
+    <input type="number" id="stock" placeholder="Stock" required />
+    <button type="submit">Agregar Producto</button>
+  </form>
+
+  <ul id="products-list">
+    <!-- Lista dinámica de productos -->
+  </ul>
+
+  <script>
+    const socket = io();
+
+    const productList = document.getElementById('products-list');
+    const form = document.getElementById('add-product-form');
+
+    // Cargar productos iniciales
+    const loadProducts = async () => {
+      const response = await fetch('/api/products');
+      const products = await response.json();
+      renderProducts(products);
+    };
+
+    // Renderizar productos en la lista
+    const renderProducts = (products) => {
+      productList.innerHTML = '';
+      products.forEach((product) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          ${product.name} - $${product.price} (Stock: ${product.stock})
+          <button onclick="deleteProduct(${product.id})">Eliminar</button>
+        `;
+        productList.appendChild(li);
+      });
+    };
+
+    // Eliminar un producto
+    const deleteProduct = (id) => {
+      socket.emit('product:delete', id);
+    };
+
+    // Enviar producto nuevo
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const price = parseFloat(document.getElementById('price').value);
+      const stock = parseInt(document.getElementById('stock').value);
+
+      socket.emit('product:create', { name, price, stock });
+      form.reset();
+    });
+
+    // Escuchar actualizaciones de productos
+    socket.on('products:update', loadProducts);
+
+    // Cargar productos iniciales al cargar la página
+    loadProducts();
+  </script>
+</body>
+</html>

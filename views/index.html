@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lista de Productos</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Precio</th>
+        <th>Stock</th>
+      </tr>
+    </thead>
+    <tbody id="product-list">
+      <!-- Los productos se cargarán dinámicamente -->
+    </tbody>
+  </table>
+</body>
+<script>
+  async function loadProducts() {
+    const response = await fetch('/api/products');
+    const products = await response.json();
+
+    const tableBody = document.getElementById('product-list');
+    tableBody.innerHTML = '';
+
+    products.forEach(product => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${product.id}</td>
+        <td>${product.name}</td>
+        <td>${product.price}</td>
+        <td>${product.stock}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+
+  window.onload = loadProducts;
+</script>
+</html>
