@@ -5,6 +5,9 @@ const http = require('http');
 const viewsRouter = require('./src/routes/views.router');
 const app = express();
 const ProductManager = require('./src/ProductManager');
+const connectDB = require('./src/config/db');
+connectDB();
+
 
 // Importar las rutas
 const productsRouter = require('./src/routes/products.js');

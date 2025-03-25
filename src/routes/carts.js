@@ -1,80 +1,68 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-
+const Product = require('../models/Product');
 const router = express.Router();
 
-// Ruta del archivo de datos
-const cartsFilePath = path.join(__dirname, '../data/carrito.json');
-const productsFilePath = path.join(__dirname, '../data/productos.json');
-
-// Leer archivo JSON
-const readFile = (filePath) => {
+router.post('/', async (req, res) => {
     try {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const newCart = new Cart({ products: [] });
+        await newCart.save();
+        res.status(201).json(newCart);
     } catch (error) {
-        return [];
+        res.status(500).json({ error: 'Error al crear el carrito' });
     }
-};
-
-// Escribir archivo JSON
-const writeFile = (filePath, data) => {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-};
-
-// Crear un nuevo carrito
-router.post('/', (req, res) => {
-    const carts = readFile(cartsFilePath);
-    const newCart = {
-        id: carts.length > 0 ? carts[carts.length - 1].id + 1 : 1,
-        products: [],
-    };
-    carts.push(newCart);
-    writeFile(cartsFilePath, carts);
-    res.status(201).json(newCart);
 });
 
-// Obtener los productos de un carrito por ID
-router.get('/:cid', (req, res) => {
-    const { cid } = req.params;
-    const carts = readFile(cartsFilePath);
-    const cart = carts.find((c) => c.id === parseInt(cid));
+// Agregar producto al carrito
+router.post('/:cartId/products', async (req, res) => {
+    try {
+        const { cartId } = req.params;
+        const { productId, quantity } = req.body;
 
-    if (!cart) {
-        return res.status(404).json({ error: 'Carrito no encontrado' });
+        const product = await Product.findById(productId);
+        if (!product || product.stock < quantity) {
+            return res.status(400).json({ error: 'Producto no disponible o stock insuficiente' });
+        }
+
+        const cart = await Cart.findById(cartId);
+        cart.products.push({ productId, quantity });
+        await cart.save();
+
+        // Reducir stock del producto
+        product.stock -= quantity;
+        await product.save();
+
+        res.json(cart);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al agregar producto al carrito' });
     }
-
-    res.json(cart.products);
 });
 
-// Agregar un producto a un carrito
-router.post('/:cid/product/:pid', (req, res) => {
-    const { cid, pid } = req.params;
-    const carts = readFile(cartsFilePath);
-    const products = readFile(productsFilePath);
-
-    // Buscar el carrito por ID
-    const cart = carts.find((c) => c.id === parseInt(cid));
-    if (!cart) {
-        return res.status(404).json({ error: 'Carrito no encontrado' });
+// Obtener un carrito
+router.get('/:cartId', async (req, res) => {
+    try {
+        const { cartId } = req.params;
+        const cart = await Cart.findById(cartId).populate('products.productId');
+        res.json(cart);
+    } catch (error) {
+        res.status(404).json({ error: 'Carrito no encontrado' });
     }
+});
 
-    // Buscar el producto por ID
-    const product = products.find((p) => p.id === parseInt(pid));
-    if (!product) {
-        return res.status(404).json({ error: 'Producto no encontrado' });
+// Eliminar un producto del carrito
+router.delete('/:cartId/products/:productId', async (req, res) => {
+    try {
+        const { cartId, productId } = req.params;
+        const cart = await Cart.findById(cartId);
+
+        cart.products = cart.products.filter((item) => item.productId.toString() !== productId);
+        await cart.save();
+
+        res.json(cart);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar producto del carrito' });
     }
-
-    // Buscar si el producto ya está en el carrito
-    const productInCart = cart.products.find((p) => p.product === parseInt(pid));
-    if (productInCart) {
-        productInCart.quantity += 1; // Incrementar la cantidad si ya existe
-    } else {
-        cart.products.push({ product: parseInt(pid), quantity: 1 }); // Agregar nuevo producto
-    }
-
-    writeFile(cartsFilePath, carts);
-    res.status(200).json(cart);
 });
 
 module.exports = router;

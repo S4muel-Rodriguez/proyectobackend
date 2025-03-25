@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs/promises');
 const router = express.Router();
 const filePath = './data/productos.json';
+const Product = require('../models/Product');
 
 // Helper para leer/escribir datos
 async function getProducts() {
@@ -68,6 +69,54 @@ router.delete('/:pid', async (req, res) => {
     if (products.length === newProducts.length) return res.status(404).json({ error: 'Producto no encontrado' });
     await saveProducts(newProducts);
     res.status(204).send();
+});
+
+module.exports = router;
+
+
+
+// Obtener todos los productos
+router.get('/', async (req, res) => {
+    try {
+        const products = await Product.find();
+        res.json(products);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener los productos' });
+    }
+});
+
+// Crear un nuevo producto
+router.post('/', async (req, res) => {
+    try {
+        const { name, price, stock, description } = req.body;
+        const newProduct = new Product({ name, price, stock, description });
+        await newProduct.save();
+        res.status(201).json(newProduct);
+    } catch (error) {
+        res.status(400).json({ error: 'Error al crear el producto' });
+    }
+});
+
+// Actualizar un producto
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updatedProduct = await Product.findByIdAndUpdate(id, req.body, { new: true });
+        res.json(updatedProduct);
+    } catch (error) {
+        res.status(404).json({ error: 'Producto no encontrado' });
+    }
+});
+
+// Eliminar un producto
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Product.findByIdAndDelete(id);
+        res.status(204).send();
+    } catch (error) {
+        res.status(404).json({ error: 'Producto no encontrado' });
+    }
 });
 
 module.exports = router;

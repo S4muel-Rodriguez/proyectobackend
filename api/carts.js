@@ -80,3 +80,89 @@ router.post('/:cid/product/:pid', (req, res) => {
 });
 
 module.exports = router;
+
+
+router.post('/:cartId/products', async (req, res) => {
+  try {
+      const { cartId } = req.params;
+      const { productId, quantity } = req.body;
+
+      const product = await Product.findById(productId);
+      if (!product || product.stock < quantity) {
+          return res.status(400).json({ error: 'Producto no disponible o stock insuficiente' });
+      }
+
+      const cart = await Cart.findById(cartId);
+
+      // Buscar si el producto ya está en el carrito
+      const existingProduct = cart.products.find((p) => p.productId.toString() === productId);
+
+      if (existingProduct) {
+          existingProduct.quantity += quantity;
+      } else {
+          cart.products.push({ productId, quantity });
+      }
+
+      // Guardar el carrito y actualizar stock
+      await cart.save();
+      product.stock -= quantity;
+      await product.save();
+
+      res.json(cart);
+  } catch (error) {
+      res.status(500).json({ error: 'Error al agregar producto al carrito' });
+  }
+});
+
+
+
+
+router.delete('/:cartId', async (req, res) => {
+  try {
+      const { cartId } = req.params;
+
+      const cart = await Cart.findById(cartId);
+      if (!cart) return res.status(404).json({ error: 'Carrito no encontrado' });
+
+      // Restaurar el stock de los productos
+      for (const item of cart.products) {
+          const product = await Product.findById(item.productId);
+          if (product) {
+              product.stock += item.quantity;
+              await product.save();
+          }
+      }
+
+      // Vaciar productos en el carrito
+      cart.products = [];
+      await cart.save();
+
+      res.json({ success: true, message: 'Carrito vaciado correctamente' });
+  } catch (error) {
+      res.status(500).json({ error: 'Error al vaciar el carrito' });
+  }
+});
+
+
+
+
+router.get('/:cartId/total', async (req, res) => {
+  try {
+      const { cartId } = req.params;
+
+      const cart = await Cart.findById(cartId).populate('products.productId');
+      if (!cart) return res.status(404).json({ error: 'Carrito no encontrado' });
+
+      // Calcular el precio total
+      const total = cart.products.reduce((sum, item) => {
+          return sum + item.productId.price * item.quantity;
+      }, 0);
+
+      res.json({ success: true, total });
+  } catch (error) {
+      res.status(500).json({ error: 'Error al calcular el total del carrito' });
+  }
+});
+
+
+
